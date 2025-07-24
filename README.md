@@ -1,7 +1,8 @@
+## ICP备案实时查询
 ### 本地使用说明
 
 项目地址：[https://github.com/076w/icp_query](https://github.com/076w/icp_query)
-语雀地址：[https://www.yuque.com/076w/tools/exg8oa62s2ggp7s6](https://www.yuque.com/076w/tools/exg8oa62s2ggp7s6)
+使用说明：[https://www.yuque.com/076w/tools/exg8oa62s2ggp7s6](https://www.yuque.com/076w/tools/exg8oa62s2ggp7s6)
 
 #### 代理API：
 
