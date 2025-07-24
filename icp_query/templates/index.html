@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>ICP备案查询网</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <!-- 顶部导航栏 -->
+  <header class="bg-white shadow-sm py-4 px-6 flex justify-between items-center">
+    <div class="flex items-center gap-4">
+      <a href="#" class="text-xl font-bold text-gray-800">ICP备案查询网</a>
+    </div>
+    <div class="flex gap-4 items-center">
+        <button id="instructionsButton" 
+                class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50" 
+                onclick="window.open('https://www.yuque.com/076w/wx6xde/exg8oa62s2ggp7s6', '_blank')">
+            使用说明
+        </button>
+    </div>
+    </div>
+
+  </header>
+
+  <!-- 主体内容 -->
+  <main class="container mx-auto px-4 mt-6">
+    <h1 class="text-3xl font-semibold text-gray-800 text-center mb-6">ICP备案查询网</h1>
+
+    <!-- 搜索区域 -->
+    <div class="flex justify-center gap-4 mb-6">
+      <input type="text" id="keyword" placeholder="请输入域名或公司名"
+         class="w-1/3 px-4 py-3 border border-gray-300 rounded-lg text-lg" />
+  <input type="text" id="proxyApi" placeholder="输入代理获取API地址"
+         class="w-1/3 px-4 py-3 border border-gray-300 rounded-lg text-lg" /> 
+
+      <button onclick="search()" 
+              class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition duration-300 text-lg font-semibold">
+        查询
+      </button>
+    </div>
+
+    <!-- 导出按钮 -->
+    <div class="flex justify-center mb-6">
+      <button onclick="exportToCSV()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition duration-300 text-lg font-semibold">
+        导出为 CSV
+      </button>
+      <button onclick="exportToJSON()" class="bg-blue-600 text-white px-6 py-3 ml-4 rounded-lg hover:bg-blue-700 transition duration-300 text-lg font-semibold">
+        导出为 JSON
+      </button>
+    </div>
+
+    <!-- 查询结果展示 -->
+    <div class="overflow-x-auto">
+      <table id="result_table" class="w-full border-collapse border border-gray-300 text-left bg-white rounded-lg shadow-sm">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="px-6 py-3 border-b border-gray-300 text-gray-700 font-semibold">序号</th> <!-- 新增序号列 -->
+            <th class="px-6 py-3 border-b border-gray-300 text-gray-700 font-semibold">域名</th>
+            <th class="px-6 py-3 border-b border-gray-300 text-gray-700 font-semibold">备案号</th>
+            <th class="px-6 py-3 border-b border-gray-300 text-gray-700 font-semibold">备案性质</th>
+            <th class="px-6 py-3 border-b border-gray-300 text-gray-700 font-semibold">备案单位</th>
+            <th class="px-6 py-3 border-b border-gray-300 text-gray-700 font-semibold">更新时间</th>
+          </tr>
+        </thead>
+        <tbody id="result" class="text-gray-800 text-sm">
+          <!-- 查询结果行 -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- 查询逻辑 -->
+  <script>
+    async function search() {
+      const keyword = document.getElementById('keyword').value.trim();
+      const resultEl = document.getElementById('result');
+      if (!keyword) {
+        alert('请输入关键词');
+        return;
+      }
+
+      resultEl.textContent = '';
+
+      try {
+        const proxyApi = document.getElementById('proxyApi').value.trim();
+
+        const res = await fetch('/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ keyword, proxyApi })
+        });
+
+        const data = await res.json();
+        if (data.error) {
+          resultEl.innerHTML = `<tr><td colspan="6" class="text-center text-red-600">${data.error}</td></tr>`;
+        } else {
+          const list = data.items.map((item, index) => {
+            return `
+              <tr>
+                <td class="px-6 py-3 border-b border-gray-300">${index + 1}</td> <!-- 序号 -->
+                <td class="px-6 py-3 border-b border-gray-300">${item.domain}</td>
+                <td class="px-6 py-3 border-b border-gray-300">${item.serviceLicence}</td>
+                <td class="px-6 py-3 border-b border-gray-300">${item.nature}</td>
+                <td class="px-6 py-3 border-b border-gray-300">${item.unitName}</td>
+                <td class="px-6 py-3 border-b border-gray-300">${item.auditTime}</td>
+              </tr>`;
+          }).join('');
+
+          resultEl.innerHTML = list;
+        }
+      } catch (err) {
+        resultEl.innerHTML = `<tr><td colspan="6" class="text-center text-red-600">请求失败：${err}</td></tr>`;
+      }
+    }
+
+    function getTimestamp() {
+      const now = new Date();
+      return now.toISOString().replace(/[:]/g, '-').split('.')[0]; // 格式化时间戳
+    }
+
+    function exportToCSV() {
+      const keyword = document.getElementById('keyword').value.trim();
+      const rows = [];
+      const table = document.getElementById('result_table');
+
+      // 获取表头
+      const headers = Array.from(table.querySelectorAll('th')).map(th => th.innerText);
+      rows.push(headers.join(','));
+
+      // 获取表格数据
+      const dataRows = Array.from(table.querySelectorAll('tbody tr'));
+      dataRows.forEach(row => {
+        const cols = Array.from(row.querySelectorAll('td')).map(td => td.innerText);
+        rows.push(cols.join(','));
+      });
+
+      // 创建 CSV 文件并下载
+      const csvContent = rows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const timestamp = getTimestamp();
+      const filename = `${keyword}-${timestamp}.csv`; // 使用输入字段和时间戳生成文件名
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function exportToJSON() {
+      const keyword = document.getElementById('keyword').value.trim();
+      const data = [];
+      const table = document.getElementById('result_table');
+
+      const dataRows = Array.from(table.querySelectorAll('tbody tr'));
+      dataRows.forEach(row => {
+        const cols = Array.from(row.querySelectorAll('td'));
+        const rowData = {
+          domain: cols[1].innerText,
+          serviceLicence: cols[2].innerText,
+          nature: cols[3].innerText,
+          unitName: cols[4].innerText,
+          auditTime: cols[5].innerText,
+        };
+        data.push(rowData);
+      });
+
+      // 创建 JSON 文件并下载
+      const jsonString = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
+      const timestamp = getTimestamp();
+      const filename = `${keyword}-${timestamp}.json`; // 使用输入字段和时间戳生成文件名
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark');
+    }
+  </script>
+</body>
+</html>
